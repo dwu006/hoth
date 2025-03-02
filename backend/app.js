@@ -1,14 +1,19 @@
-const express = require('express');
-const cors = require('cors');
-const morgan = require('morgan');
+import express from 'express';
+import cors from 'cors';
+import db from './config/db.js';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const app = express();
 
 // Middleware
 app.use(cors());
-app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Connect to MongoDB
+db();
 
 // Basic route
 app.get('/', (req, res) => {

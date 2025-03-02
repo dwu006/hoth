@@ -1,18 +1,28 @@
-import React, { useState, useRef } from 'react';
-import { View, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import { View, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, Image } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { useIsFocused } from '@react-navigation/native';
+import { useIsFocused, useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { StatusBar } from 'expo-status-bar';
+import { router } from 'expo-router';
 
 export default function Capture() {
+  const navigation = useNavigation();
   const isFocused = useIsFocused();
   const [permission, requestPermission] = useCameraPermissions();
   const [cameraReady, setCameraReady] = useState(false);
   const [facing, setFacing] = useState('back');
   const [flash, setFlash] = useState('off');
   const [capturing, setCapturing] = useState(false);
+  const [photo, setPhoto] = useState(null);
   const cameraRef = useRef(null);
+
+  // Reset photo when leaving the page
+  useEffect(() => {
+    if (!isFocused && photo) {
+      setPhoto(null);
+    }
+  }, [isFocused, photo]);
 
   // Function to take picture
   const takePicture = async () => {
@@ -26,7 +36,7 @@ export default function Capture() {
       });
       
       console.log('Photo taken:', photo.uri);
-      // Here you would handle the photo (upload, save, etc.)
+      setPhoto(photo);
       
     } catch (error) {
       console.error('Error taking picture:', error);
@@ -34,6 +44,16 @@ export default function Capture() {
     } finally {
       setCapturing(false);
     }
+  };
+
+  // Function to retake photo
+  const retakePhoto = () => {
+    setPhoto(null);
+  };
+
+  // Function to proceed with the photo
+  const handleDone = () => {
+    router.push('/events');
   };
 
   // Toggle between front and back camera
@@ -64,6 +84,29 @@ export default function Capture() {
         >
           <ActivityIndicator size="large" color="#FFFFFF" />
         </TouchableOpacity>
+      </View>
+    );
+  }
+
+  if (photo) {
+    return (
+      <View style={styles.container}>
+        <StatusBar style="light" />
+        <Image source={{ uri: photo.uri }} style={styles.preview} />
+        <View style={styles.previewControls}>
+          <TouchableOpacity 
+            style={styles.previewButton} 
+            onPress={retakePhoto}
+          >
+            <Icon name="refresh-outline" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.previewButton, styles.doneButton]} 
+            onPress={handleDone}
+          >
+            <Icon name="checkmark" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+        </View>
       </View>
     );
   }
@@ -198,5 +241,32 @@ const styles = StyleSheet.create({
     height: 60,
     borderRadius: 30,
     backgroundColor: '#FFFFFF',
+  },
+  preview: {
+    flex: 1,
+    width: '100%',
+  },
+  previewControls: {
+    position: 'absolute',
+    bottom: 30,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 20,
+  },
+  previewButton: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  doneButton: {
+    backgroundColor: '#4CAF50',
+    borderColor: '#4CAF50',
   },
 });

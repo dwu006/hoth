@@ -9,12 +9,16 @@ export default function TabsLayout() {
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;
 
-          if (route.name === 'feed') {
-            iconName = focused ? 'home' : 'home-outline';
-          } else if (route.name === 'capture') {
-            iconName = focused ? 'camera' : 'camera-outline';
-          } else if (route.name === 'profile') {
-            iconName = focused ? 'person' : 'person-outline';
+          switch (route.name) {
+            case 'feed':
+              iconName = focused ? 'home' : 'home-outline';
+              break;
+            case 'capture':
+              iconName = focused ? 'camera' : 'camera-outline';
+              break;
+            case 'profile':
+              iconName = focused ? 'person' : 'person-outline';
+              break;
           }
 
           return <Icon name={iconName} size={size} color={color} />;
@@ -28,7 +32,12 @@ export default function TabsLayout() {
         tabBarActiveTintColor: '#FFFFFF',
         tabBarInactiveTintColor: '#666666',
         headerShown: false,
+        tabBarHideOnKeyboard: true,
       })}
-    />
+    >
+      <Tabs.Screen name="feed" />
+      <Tabs.Screen name="capture" />
+      <Tabs.Screen name="profile" />
+    </Tabs>
   );
 }

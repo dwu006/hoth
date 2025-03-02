@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import db from './config/db.js';
 import dotenv from 'dotenv';
+import userRoutes from './routes/userRoutes.js';
 
 dotenv.config();
 
@@ -14,6 +15,9 @@ app.use(express.urlencoded({ extended: true }));
 
 // Connect to MongoDB
 db();
+
+// Routes
+app.use('/users', userRoutes);
 
 // Basic route
 app.get('/', (req, res) => {

@@ -31,9 +31,13 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  sadImg: {
+  pfp: {
     type: Buffer,
     default: null
+  },
+  sadPic: {
+    type: String,
+    default: ''
   },
   taskImg: [taskImageSchema],
   createdAt: {

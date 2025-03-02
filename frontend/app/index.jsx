@@ -7,12 +7,12 @@ export default function Index() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>BeReal Clone</Text>
-      <Text style={styles.subtitle}>Share moments with friends</Text>
+      <Text style={styles.title}>RollCall</Text>
+      <Text style={styles.subtitle}>Keep your friends accountable!</Text>
       <TouchableOpacity 
         style={styles.button}
-        onPress={() => router.replace('pages/feed')}
-        >
+        onPress={() => router.replace('/setup/username')}
+      >
         <Text style={styles.buttonText}>Get Started</Text>
       </TouchableOpacity>
     </View>

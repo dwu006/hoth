@@ -1,19 +1,20 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import GoogleSignInButton from "./components/GoogleSigninButton";
 
 export default function Index() {
   const router = useRouter();
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>RollCall</Text>
-      <Text style={styles.subtitle}>Keep your friends accountable!</Text>
-      <TouchableOpacity 
+      <Text style={styles.title}>BeReal Clone</Text>
+      <Text style={styles.subtitle}>Keep you and your friends accountable!</Text>
+      <TouchableOpacity
         style={styles.button}
-        onPress={() => router.replace('/setup/username')}
       >
-        <Text style={styles.buttonText}>Get Started</Text>
+        <GoogleSignInButton/>
       </TouchableOpacity>
     </View>
   );

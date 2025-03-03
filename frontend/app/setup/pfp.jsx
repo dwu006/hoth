@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image, ActivityIndicator, Animated, Dimensions } from 'react-native';
 import { router } from 'expo-router';
-import { CameraView, useCameraPermissions } from 'expo-camera';
+import { CameraView } from 'expo-camera';
 import { StatusBar } from 'expo-status-bar';
 import Icon from 'react-native-vector-icons/Ionicons';
 import * as ImagePicker from 'expo-image-picker';
@@ -12,9 +12,9 @@ const window = Dimensions.get('window');
 
 export default function ProfilePicture() {
   const [photo, setPhoto] = useState(null);
-  const [permission, requestPermission] = useCameraPermissions();
   const [cameraReady, setCameraReady] = useState(false);
   const [facing, setFacing] = useState('front');
+  const [showCamera, setShowCamera] = useState(true);
   const cameraRef = useRef(null);
   const fadeAnim = useRef(new Animated.Value(1)).current;
 
@@ -33,6 +33,7 @@ export default function ProfilePicture() {
 
   const pickImage = async () => {
     try {
+      setShowCamera(false);
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
@@ -42,9 +43,12 @@ export default function ProfilePicture() {
 
       if (!result.canceled) {
         setPhoto({ uri: result.assets[0].uri });
+      } else {
+        setShowCamera(true);
       }
     } catch (error) {
       console.error('Error picking image:', error);
+      setShowCamera(true);
     }
   };
 
@@ -69,27 +73,12 @@ export default function ProfilePicture() {
 
   const retakePhoto = () => {
     setPhoto(null);
+    setShowCamera(true);
   };
 
   const toggleCamera = () => {
     setFacing(current => current === 'front' ? 'back' : 'front');
   };
-
-  // Show loading while checking permissions
-  if (!permission) {
-    return (
-      <View style={styles.container}>
-        <StatusBar style="light" />
-        <ActivityIndicator size="large" color="#FFFFFF" />
-      </View>
-    );
-  }
-
-  // If permission denied, redirect to error page
-  if (!permission.granted) {
-    router.replace('/errors/camera');
-    return null;
-  }
 
   if (photo) {
     return (
@@ -120,12 +109,14 @@ export default function ProfilePicture() {
     <View style={styles.container}>
       <StatusBar style="light" />
       <View style={styles.cameraContainer}>
-        <CameraView
-          ref={cameraRef}
-          style={styles.camera}
-          facing={facing}
-          onCameraReady={() => setCameraReady(true)}
-        />
+        {showCamera && (
+          <CameraView
+            ref={cameraRef}
+            style={styles.camera}
+            facing={facing}
+            onCameraReady={() => setCameraReady(true)}
+          />
+        )}
         <View style={styles.maskContainer}>
           <Svg height="100%" width="100%" style={StyleSheet.absoluteFill}>
             <Rect

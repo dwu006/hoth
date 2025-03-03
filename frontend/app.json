@@ -9,7 +9,13 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.hoth.rollcall",
+      "config": {
+        "googleSignIn": {
+          "reservedClientId": "552772906284-plrbblvlcu7k42e9s4cvhht5hhqtlg4v.apps.googleusercontent.com"
+        }
+      }
     },
     "android": {
       "adaptiveIcon": {

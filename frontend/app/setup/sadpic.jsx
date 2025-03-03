@@ -1,20 +1,21 @@
 import React, { useState, useRef } from 'react';
 import { View, TouchableOpacity, StyleSheet, Image, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
-import { CameraView, useCameraPermissions } from 'expo-camera';
+import { CameraView } from 'expo-camera';
 import { StatusBar } from 'expo-status-bar';
 import Icon from 'react-native-vector-icons/Ionicons';
 import * as ImagePicker from 'expo-image-picker';
 
 export default function SadPicture() {
   const [photo, setPhoto] = useState(null);
-  const [permission, requestPermission] = useCameraPermissions();
   const [cameraReady, setCameraReady] = useState(false);
   const [facing, setFacing] = useState('front');
+  const [showCamera, setShowCamera] = useState(true);
   const cameraRef = useRef(null);
 
   const pickImage = async () => {
     try {
+      setShowCamera(false);
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
@@ -24,9 +25,12 @@ export default function SadPicture() {
 
       if (!result.canceled) {
         setPhoto({ uri: result.assets[0].uri });
+      } else {
+        setShowCamera(true);
       }
     } catch (error) {
       console.error('Error picking image:', error);
+      setShowCamera(true);
     }
   };
 
@@ -51,27 +55,12 @@ export default function SadPicture() {
 
   const retakePhoto = () => {
     setPhoto(null);
+    setShowCamera(true);
   };
 
   const toggleCamera = () => {
     setFacing(current => current === 'front' ? 'back' : 'front');
   };
-
-  // Show loading while checking permissions
-  if (!permission) {
-    return (
-      <View style={styles.container}>
-        <StatusBar style="light" />
-        <ActivityIndicator size="large" color="#FFFFFF" />
-      </View>
-    );
-  }
-
-  // If permission denied, redirect to error page
-  if (!permission.granted) {
-    router.replace('/errors/camera');
-    return null;
-  }
 
   if (photo) {
     return (
@@ -99,38 +88,40 @@ export default function SadPicture() {
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
-      <CameraView
-        ref={cameraRef}
-        style={styles.camera}
-        facing={facing}
-        onCameraReady={() => setCameraReady(true)}
-      >
-        <View style={styles.overlay}>
-          <View style={styles.controls}>
-            <TouchableOpacity 
-              style={styles.controlButton}
-              onPress={toggleCamera}
-            >
-              <Icon name="camera-reverse-outline" size={24} color="#FFFFFF" />
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.captureButton}
-              onPress={takePicture}
-              disabled={!cameraReady}
-            >
-              <View style={styles.captureButtonInner} />
-            </TouchableOpacity>
+      {showCamera && (
+        <CameraView
+          ref={cameraRef}
+          style={styles.camera}
+          facing={facing}
+          onCameraReady={() => setCameraReady(true)}
+        >
+          <View style={styles.overlay}>
+            <View style={styles.controls}>
+              <TouchableOpacity 
+                style={styles.controlButton}
+                onPress={toggleCamera}
+              >
+                <Icon name="camera-reverse-outline" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.captureButton}
+                onPress={takePicture}
+                disabled={!cameraReady}
+              >
+                <View style={styles.captureButtonInner} />
+              </TouchableOpacity>
 
-            <TouchableOpacity 
-              style={styles.controlButton}
-              onPress={pickImage}
-            >
-              <Icon name="images-outline" size={24} color="#FFFFFF" />
-            </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.controlButton}
+                onPress={pickImage}
+              >
+                <Icon name="images-outline" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
-      </CameraView>
+        </CameraView>
+      )}
     </View>
   );
 }

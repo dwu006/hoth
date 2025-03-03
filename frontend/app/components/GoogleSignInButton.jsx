@@ -12,7 +12,7 @@ WebBrowser.maybeCompleteAuthSession();
 const googleClientId = Platform.select({
   ios: '552772906284-plrbblvlcu7k42e9s4cvhht5hhqtlg4v.apps.googleusercontent.com',
   android: '552772906284-plrbblvlcu7k42e9s4cvhht5hhqtlg4v.apps.googleusercontent.com',
-  web: '552772906284-plrbblvlcu7k42e9s4cvhht5hhqtlg4v.apps.googleusercontent.com',
+  web: '552772906284-rfc5jhovebjrqra25e447hh1vnd2c32i.apps.googleusercontent.com',
 });
 
 const discovery = {
@@ -29,9 +29,13 @@ export const GoogleSignInButton = () => {
   useEffect(() => {
     async function prepareGoogleSignIn() {
       try {
-        const redirectUri = AuthSession.makeRedirectUri({ 
-          useProxy: true,
-          scheme: 'com.hoth.rollcall' 
+        // Use different redirect URI approach based on platform
+        const redirectUri = Platform.select({
+          web: AuthSession.makeRedirectUri({ useProxy: false }),
+          default: AuthSession.makeRedirectUri({ 
+            useProxy: true,
+            scheme: 'com.hoth.rollcall' 
+          })
         });
         
         console.log('Redirect URI:', redirectUri);
@@ -63,7 +67,11 @@ export const GoogleSignInButton = () => {
         return;
       }
       
-      const result = await request.promptAsync({ useProxy: true });
+      // Use different prompt approach based on platform
+      const result = await Platform.select({
+        web: request.promptAsync(),
+        default: request.promptAsync({ useProxy: true })
+      });
       
       if (result.type === 'success') {
         // Handle successful authentication
@@ -75,8 +83,8 @@ export const GoogleSignInButton = () => {
         // Here you would typically send the code to your backend
         // to exchange it for tokens and create a user session
         
-        // Navigate to the main app
-        router.replace('/pages/feed');
+        // Navigate to setup page
+        router.replace('/setup/username');
       } else {
         console.log('Authentication failed or was cancelled');
       }

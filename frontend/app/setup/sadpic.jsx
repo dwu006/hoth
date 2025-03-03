@@ -1,16 +1,18 @@
 import React, { useState, useRef } from 'react';
-import { View, TouchableOpacity, StyleSheet, Image, ActivityIndicator } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Image, ActivityIndicator, Text, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { CameraView } from 'expo-camera';
 import { StatusBar } from 'expo-status-bar';
 import Icon from 'react-native-vector-icons/Ionicons';
 import * as ImagePicker from 'expo-image-picker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function SadPicture() {
   const [photo, setPhoto] = useState(null);
   const [cameraReady, setCameraReady] = useState(false);
   const [facing, setFacing] = useState('front');
   const [showCamera, setShowCamera] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const cameraRef = useRef(null);
 
   const pickImage = async () => {
@@ -21,10 +23,11 @@ export default function SadPicture() {
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.8,
+        base64: true,
       });
 
       if (!result.canceled) {
-        setPhoto({ uri: result.assets[0].uri });
+        setPhoto({ uri: result.assets[0].uri, base64: result.assets[0].base64 });
       } else {
         setShowCamera(true);
       }
@@ -41,6 +44,7 @@ export default function SadPicture() {
       const photo = await cameraRef.current.takePictureAsync({
         quality: 0.8,
         skipProcessing: false,
+        base64: true,
       });
       setPhoto(photo);
     } catch (error) {
@@ -48,9 +52,57 @@ export default function SadPicture() {
     }
   };
 
-  const handleDone = () => {
-    // TODO: Upload sadPic to backend
-    router.replace('/pages/feed');
+  const handleDone = async () => {
+    if (!photo) {
+      Alert.alert('Error', 'Please take or select a sad picture');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      
+      // Store the sad picture in AsyncStorage
+      await AsyncStorage.setItem('sadPicture', photo.base64);
+      
+      console.log('Sad picture saved successfully');
+      
+      // Save all user data to MongoDB (in a real app)
+      // For now, we'll simulate this by logging to console
+      await saveUserDataToMongoDB();
+      
+      // Navigate to events page with the updated path
+      router.replace('/events/events');
+    } catch (error) {
+      console.error('Error saving sad picture:', error);
+      Alert.alert('Error', 'Failed to save sad picture. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Simulate saving user data to MongoDB
+  const saveUserDataToMongoDB = async () => {
+    try {
+      // In a real app, this would be an API call to your backend
+      const username = await AsyncStorage.getItem('username');
+      const tagId = await AsyncStorage.getItem('tagId');
+      const profilePicture = await AsyncStorage.getItem('profilePicture');
+      const sadPicture = await AsyncStorage.getItem('sadPicture');
+      
+      console.log('Saving user data to MongoDB:');
+      console.log('- Username:', username);
+      console.log('- Tag ID:', tagId);
+      console.log('- Profile Picture:', profilePicture ? 'Set' : 'Not set');
+      console.log('- Sad Picture:', sadPicture ? 'Set' : 'Not set');
+      
+      // Simulate a delay for the API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      return true;
+    } catch (error) {
+      console.error('Error saving to MongoDB:', error);
+      throw error;
+    }
   };
 
   const retakePhoto = () => {
@@ -67,20 +119,27 @@ export default function SadPicture() {
       <View style={styles.container}>
         <StatusBar style="light" />
         <Image source={{ uri: photo.uri }} style={styles.preview} />
-        <View style={styles.previewControls}>
-          <TouchableOpacity 
-            style={styles.previewButton} 
-            onPress={retakePhoto}
-          >
-            <Icon name="refresh-outline" size={24} color="#FFFFFF" />
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.previewButton, styles.doneButton]} 
-            onPress={handleDone}
-          >
-            <Icon name="checkmark" size={24} color="#FFFFFF" />
-          </TouchableOpacity>
-        </View>
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#4CAF50" />
+            <Text style={styles.loadingText}>Saving sad picture...</Text>
+          </View>
+        ) : (
+          <View style={styles.previewControls}>
+            <TouchableOpacity 
+              style={styles.previewButton} 
+              onPress={retakePhoto}
+            >
+              <Icon name="refresh-outline" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.previewButton, styles.doneButton]} 
+              onPress={handleDone}
+            >
+              <Icon name="checkmark" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
     );
   }
@@ -96,6 +155,9 @@ export default function SadPicture() {
           onCameraReady={() => setCameraReady(true)}
         >
           <View style={styles.overlay}>
+            <Text style={styles.instructionText}>
+              Take a picture of your sad face
+            </Text>
             <View style={styles.controls}>
               <TouchableOpacity 
                 style={styles.controlButton}
@@ -139,6 +201,17 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.3)',
     justifyContent: 'flex-end',
     paddingBottom: 40,
+  },
+  instructionText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    textAlign: 'center',
+    marginBottom: 40,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    alignSelf: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
   },
   controls: {
     flexDirection: 'row',
@@ -194,5 +267,16 @@ const styles = StyleSheet.create({
   doneButton: {
     backgroundColor: '#4CAF50',
     borderColor: '#4CAF50',
+  },
+  loadingContainer: {
+    position: 'absolute',
+    bottom: 40,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  loadingText: {
+    color: '#FFFFFF',
+    marginTop: 10,
   },
 });

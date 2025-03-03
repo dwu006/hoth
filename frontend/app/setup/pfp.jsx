@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image, ActivityIndicator, Animated, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image, ActivityIndicator, Animated, Dimensions, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { CameraView } from 'expo-camera';
 import { StatusBar } from 'expo-status-bar';
 import Icon from 'react-native-vector-icons/Ionicons';
 import * as ImagePicker from 'expo-image-picker';
 import { Svg, Circle, Rect } from 'react-native-svg';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const CIRCLE_RADIUS = 180;
 const window = Dimensions.get('window');
@@ -15,6 +16,7 @@ export default function ProfilePicture() {
   const [cameraReady, setCameraReady] = useState(false);
   const [facing, setFacing] = useState('front');
   const [showCamera, setShowCamera] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const cameraRef = useRef(null);
   const fadeAnim = useRef(new Animated.Value(1)).current;
 
@@ -39,10 +41,11 @@ export default function ProfilePicture() {
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.8,
+        base64: true,
       });
 
       if (!result.canceled) {
-        setPhoto({ uri: result.assets[0].uri });
+        setPhoto({ uri: result.assets[0].uri, base64: result.assets[0].base64 });
       } else {
         setShowCamera(true);
       }
@@ -59,6 +62,7 @@ export default function ProfilePicture() {
       const photo = await cameraRef.current.takePictureAsync({
         quality: 0.8,
         skipProcessing: false,
+        base64: true,
       });
       setPhoto(photo);
     } catch (error) {
@@ -66,9 +70,28 @@ export default function ProfilePicture() {
     }
   };
 
-  const handleDone = () => {
-    // TODO: Upload photo to backend
-    router.replace('/setup/sadpic');
+  const handleDone = async () => {
+    if (!photo) {
+      Alert.alert('Error', 'Please take or select a profile picture');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      
+      // Store the profile picture in AsyncStorage
+      await AsyncStorage.setItem('profilePicture', photo.base64);
+      
+      console.log('Profile picture saved successfully');
+      
+      // Navigate to sad picture setup
+      router.replace('/setup/sadpic');
+    } catch (error) {
+      console.error('Error saving profile picture:', error);
+      Alert.alert('Error', 'Failed to save profile picture. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const retakePhoto = () => {
@@ -87,20 +110,27 @@ export default function ProfilePicture() {
         <View style={[styles.previewContainer, { width: CIRCLE_RADIUS * 2, height: CIRCLE_RADIUS * 2 }]}>
           <Image source={{ uri: photo.uri }} style={styles.preview} />
         </View>
-        <View style={styles.previewControls}>
-          <TouchableOpacity 
-            style={styles.previewButton} 
-            onPress={retakePhoto}
-          >
-            <Icon name="refresh-outline" size={24} color="#FFFFFF" />
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.previewButton, styles.doneButton]} 
-            onPress={handleDone}
-          >
-            <Icon name="checkmark" size={24} color="#FFFFFF" />
-          </TouchableOpacity>
-        </View>
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#4CAF50" />
+            <Text style={styles.loadingText}>Saving profile picture...</Text>
+          </View>
+        ) : (
+          <View style={styles.previewControls}>
+            <TouchableOpacity 
+              style={styles.previewButton} 
+              onPress={retakePhoto}
+            >
+              <Icon name="refresh-outline" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.previewButton, styles.doneButton]} 
+              onPress={handleDone}
+            >
+              <Icon name="checkmark" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
     );
   }
@@ -263,5 +293,13 @@ const styles = StyleSheet.create({
   doneButton: {
     backgroundColor: '#4CAF50',
     borderColor: '#4CAF50',
+  },
+  loadingContainer: {
+    marginTop: 20,
+    alignItems: 'center',
+  },
+  loadingText: {
+    color: '#FFFFFF',
+    marginTop: 10,
   },
 });

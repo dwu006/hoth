@@ -16,6 +16,9 @@ export default function TabsLayout() {
             case 'capture':
               iconName = focused ? 'camera' : 'camera-outline';
               break;
+            case 'events':
+              iconName = focused ? 'calendar' : 'calendar-outline';
+              break;
             case 'profile':
               iconName = focused ? 'person' : 'person-outline';
               break;
@@ -37,6 +40,13 @@ export default function TabsLayout() {
     >
       <Tabs.Screen name="feed" />
       <Tabs.Screen name="capture" />
+      <Tabs.Screen 
+        name="events" 
+        options={{
+          title: 'Calendar',
+          href: '/events/events',
+        }}
+      />
       <Tabs.Screen name="profile" />
     </Tabs>
   );

@@ -4,6 +4,7 @@ import * as WebBrowser from 'expo-web-browser';
 import * as AuthSession from 'expo-auth-session';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Configure Google Sign-In
 WebBrowser.maybeCompleteAuthSession();
@@ -45,7 +46,8 @@ export const GoogleSignInButton = () => {
           redirectUri,
           responseType: 'code',
           usePKCE: false,
-          scopes: ['profile', 'email'],
+          // Add calendar.readonly scope to access Google Calendar
+          scopes: ['profile', 'email', 'https://www.googleapis.com/auth/calendar.readonly'],
         }, discovery);
         
         setRequest(newRequest);
@@ -80,8 +82,32 @@ export const GoogleSignInButton = () => {
         console.log('Authentication successful!');
         console.log('Authorization code:', code);
         
-        // Here you would typically send the code to your backend
-        // to exchange it for tokens and create a user session
+        try {
+          // Exchange code for tokens
+          const tokenResult = await exchangeCodeForToken(code, request.redirectUri);
+          
+          if (tokenResult && tokenResult.access_token) {
+            // Store tokens in AsyncStorage
+            await AsyncStorage.setItem('googleAccessToken', tokenResult.access_token);
+            
+            if (tokenResult.refresh_token) {
+              await AsyncStorage.setItem('googleRefreshToken', tokenResult.refresh_token);
+            }
+            
+            // Store user email if available
+            if (tokenResult.id_token) {
+              const userInfo = parseJwt(tokenResult.id_token);
+              if (userInfo && userInfo.email) {
+                await AsyncStorage.setItem('email', userInfo.email);
+              }
+            }
+            
+            console.log('Tokens stored successfully');
+          }
+        } catch (tokenError) {
+          console.error('Error exchanging code for token:', tokenError);
+          // Continue with navigation even if token exchange fails
+        }
         
         // Navigate to setup page
         router.replace('/setup/username');
@@ -93,6 +119,57 @@ export const GoogleSignInButton = () => {
       Alert.alert('Error', 'Failed to sign in with Google. Please try again.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Function to exchange authorization code for tokens
+  const exchangeCodeForToken = async (code, redirectUri) => {
+    try {
+      const tokenEndpoint = 'https://oauth2.googleapis.com/token';
+      
+      const params = new URLSearchParams();
+      params.append('client_id', googleClientId);
+      params.append('code', code);
+      params.append('redirect_uri', redirectUri);
+      params.append('grant_type', 'authorization_code');
+      
+      // In a production app, you would typically handle this on your backend
+      // to avoid exposing your client secret
+      
+      const response = await fetch(tokenEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: params.toString(),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Token exchange failed: ${response.status}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Token exchange error:', error);
+      throw error;
+    }
+  };
+
+  // Helper function to parse JWT token
+  const parseJwt = (token) => {
+    try {
+      const base64Url = token.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(
+        atob(base64)
+          .split('')
+          .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+          .join('')
+      );
+      return JSON.parse(jsonPayload);
+    } catch (error) {
+      console.error('Error parsing JWT:', error);
+      return null;
     }
   };
 
@@ -114,12 +191,12 @@ export const GoogleSignInButton = () => {
 
 const styles = StyleSheet.create({
   googleButton: {
-    backgroundColor: '#4285F4',
+    backgroundColor: '#000000',
     borderRadius: 8,
     paddingVertical: 12,
     paddingHorizontal: 16,
     marginVertical: 10,
-    width: '80%',
+    width: '20%',
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -5,6 +5,7 @@ import { useIsFocused, useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { StatusBar } from 'expo-status-bar';
 import { router } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function Capture() {
   const navigation = useNavigation();
@@ -15,7 +16,15 @@ export default function Capture() {
   const [flash, setFlash] = useState('off');
   const [capturing, setCapturing] = useState(false);
   const [photo, setPhoto] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
   const cameraRef = useRef(null);
+
+  // Event data for reference - updated to match the events.jsx
+  const eventData = {
+    '1': { title: 'Math 32B', location: 'Bunche 2902' },
+    '2': { title: 'Math 33A', location: 'Bunche 2902' },
+    '3': { title: 'CS 35L', location: 'Boleter 3400' }
+  };
 
   // Reset photo when leaving the page
   useEffect(() => {
@@ -52,8 +61,64 @@ export default function Capture() {
   };
 
   // Function to proceed with the photo
-  const handleDone = () => {
-    router.push('/events/events');
+  const handleDone = async () => {
+    try {
+      setIsSaving(true);
+      
+      // Save the photo URI to AsyncStorage for later use
+      await AsyncStorage.setItem('lastCapturedPhoto', photo.uri);
+      console.log('Saved photo to AsyncStorage:', photo.uri);
+      
+      // Create a post directly with a default event (first event)
+      const defaultEventId = '1'; // Using Math 32B as default
+      const event = eventData[defaultEventId];
+      
+      // Mark the event as completed
+      const completedEventsStr = await AsyncStorage.getItem('completedEvents');
+      let completedEvents = completedEventsStr ? JSON.parse(completedEventsStr) : {};
+      
+      // Mark the default event as completed
+      completedEvents[defaultEventId] = true;
+      await AsyncStorage.setItem('completedEvents', JSON.stringify(completedEvents));
+      
+      // Get user info
+      const username = await AsyncStorage.getItem('username') || 'You';
+      const tagId = await AsyncStorage.getItem('tagId') || '0000000';
+      
+      // Create a new post
+      const newPost = {
+        id: Date.now().toString(),
+        username: username,
+        tagId: tagId,
+        timestamp: 'Just now',
+        votes: 0,
+        userVote: null,
+        image: { uri: photo.uri },
+        title: event.title,
+        location: event.location,
+        eventId: defaultEventId,
+        completed: true
+      };
+      
+      // Get existing posts
+      const postsStr = await AsyncStorage.getItem('posts');
+      let posts = postsStr ? JSON.parse(postsStr) : [];
+      
+      // Add new post to the beginning of the array
+      posts = [newPost, ...posts];
+      
+      // Save updated posts
+      await AsyncStorage.setItem('posts', JSON.stringify(posts));
+      console.log('Saved new post with photo');
+      
+      // Navigate directly to feed page
+      router.replace('/pages/feed');
+    } catch (error) {
+      console.error('Error saving photo:', error);
+      Alert.alert('Error', 'Failed to save photo');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // Toggle between front and back camera
@@ -103,8 +168,13 @@ export default function Capture() {
           <TouchableOpacity 
             style={[styles.previewButton, styles.doneButton]} 
             onPress={handleDone}
+            disabled={isSaving}
           >
-            <Icon name="checkmark" size={24} color="#FFFFFF" />
+            {isSaving ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <Icon name="checkmark" size={24} color="#FFFFFF" />
+            )}
           </TouchableOpacity>
         </View>
       </View>

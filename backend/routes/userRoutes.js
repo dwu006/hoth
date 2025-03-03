@@ -2,7 +2,7 @@ import express from 'express';
 import { 
   createUser, 
   updateUsername, 
-  updatePfp, 
+  updateSadPic, 
   addTaskImage, 
   getUser 
 } from '../controllers/userController.js';
@@ -18,7 +18,7 @@ const upload = multer({ storage });
 router.post('/register', createUser);
 router.get('/:userId', getUser);
 router.put('/:userId/username', updateUsername);
-router.put('/:userId/pfp', upload.single('image'), updatePfp);
+router.put('/:userId/sad-pic', upload.single('image'), updateSadPic);
 router.post('/:userId/task-image', upload.single('image'), addTaskImage);
 
 export default router;

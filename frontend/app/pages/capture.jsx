@@ -53,7 +53,7 @@ export default function Capture() {
 
   // Function to proceed with the photo
   const handleDone = () => {
-    router.push('/events/events');
+    router.push('/events');
   };
 
   // Toggle between front and back camera

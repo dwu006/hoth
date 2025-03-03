@@ -61,7 +61,7 @@ export const updateUsername = async (req, res) => {
   }
 };
 
-export const updatePfp = async (req, res) => {
+export const updateSadPic = async (req, res) => {
   try {
     const { userId } = req.params;
     if (!req.file) {
@@ -70,7 +70,7 @@ export const updatePfp = async (req, res) => {
 
     const user = await User.findByIdAndUpdate(
       userId,
-      { $set: { pfp: req.file.buffer } },
+      { $set: { sadImg: req.file.buffer } },
       { new: true }
     );
 
@@ -79,11 +79,11 @@ export const updatePfp = async (req, res) => {
     }
 
     res.json({ 
-      message: 'Profile picture updated successfully'
+      message: 'Sad picture updated successfully'
     });
   } catch (error) {
-    console.error('Update profile picture error:', error);
-    res.status(500).json({ message: 'Error updating profile picture' });
+    console.error('Update sad picture error:', error);
+    res.status(500).json({ message: 'Error updating sad picture' });
   }
 };
 
@@ -134,7 +134,7 @@ export const getUser = async (req, res) => {
     // Convert Buffer to Base64 for response
     const response = {
       ...user.toObject(),
-      pfp: user.pfp ? user.pfp.toString('base64') : null,
+      sadImg: user.sadImg ? user.sadImg.toString('base64') : null,
       taskImg: user.taskImg.map(img => ({
         data: img.data.toString('base64'),
         timestamp: img.timestamp
@@ -145,45 +145,5 @@ export const getUser = async (req, res) => {
   } catch (error) {
     console.error('Get user error:', error);
     res.status(500).json({ message: 'Error retrieving user' });
-  }
-};
-
-export const updateUser = async (req, res) => {
-  try {
-    const { username, profilePic, sadPic } = req.body;
-    const userId = req.user.id;
-
-    const updateFields = {};
-    if (username) updateFields.username = username;
-    if (profilePic) updateFields.profilePic = profilePic;
-    if (sadPic) updateFields.sadPic = sadPic;
-
-    const user = await User.findByIdAndUpdate(
-      userId,
-      { $set: updateFields },
-      { new: true }
-    );
-
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    res.json(user);
-  } catch (error) {
-    console.error('Error updating user:', error);
-    res.status(500).json({ message: 'Error updating user' });
-  }
-};
-
-export const getUserProfile = async (req, res) => {
-  try {
-    const user = await User.findById(req.user.id);
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-    res.json(user);
-  } catch (error) {
-    console.error('Error getting user:', error);
-    res.status(500).json({ message: 'Error getting user' });
   }
 };
